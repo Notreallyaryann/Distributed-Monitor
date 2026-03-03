@@ -1,0 +1,8 @@
+node_modules
+.env
+dist
+coverage
+.redis
+redis-data
+*.log
+.DS_Store
