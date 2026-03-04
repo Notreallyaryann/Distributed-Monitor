@@ -1,4 +1,5 @@
 import { Worker } from "bullmq";
+import axios from "axios";
 import { redis } from "./config/redis.js";
 import { checkUrl } from "./services/checker.js";
 import { logger } from "./utils/logger.js";
@@ -6,22 +7,24 @@ import { logger } from "./utils/logger.js";
 const worker = new Worker(
     "monitorQueue",
     async job => {
-        const { url } = job.data;
+        const { id, url } = job.data;
 
         const result = await checkUrl(url);
 
-        logger.info({ result }, "Job processed");
+        await axios.patch(
+            `http://localhost:4000/monitors/${id}`,
+            {
+                status: result.status
+            }
+        );
+
+        logger.info({ id, status: result.status }, "Job processed");
 
         return result;
     },
     {
         connection: redis,
-        concurrency: 5,
-        attempts: 3,
-        backoff: {
-            type: "exponential",
-            delay: 2000
-        }
+        concurrency: 5
     }
 );
 
