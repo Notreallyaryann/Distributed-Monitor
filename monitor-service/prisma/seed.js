@@ -6,7 +6,9 @@ async function main() {
     await prisma.monitor.createMany({
         data: [
             { url: "https://google.com" },
-            { url: "https://github.com" }
+            { url: "https://github.com" },
+            { url: "https://chatgpt.com" },
+
         ]
     });
 }
