@@ -11,6 +11,8 @@ model Monitor {
   id            Int       @id @default(autoincrement())
   url           String
   status        String    @default("UNKNOWN")
+  sslStatus     String    @default("UNKNOWN")
+  sslExpiresAt  DateTime?
   lastCheckedAt DateTime?
   createdAt     DateTime  @default(now())
 }
