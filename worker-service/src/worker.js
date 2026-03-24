@@ -56,7 +56,7 @@ const worker = new Worker(
     async job => {
         const { id, url } = job.data;
 
-        // ── Rate Limiting 
+        //  Rate Limiting 
         const allowed = await isAllowed(url);
         if (!allowed) {
             logger.warn({ id, url }, "Job skipped — domain rate limited");
@@ -74,18 +74,23 @@ const worker = new Worker(
         const newStatus = result.status;
 
 
-        if (previousStatus !== newStatus) {
+        const statusChanged = previousStatus !== newStatus;
+        let emailSent = undefined; // only set when status changes
+
+        if (statusChanged) {
             logger.info(
                 { id, from: previousStatus, to: newStatus },
                 "Status changed — sending email"
             );
 
+            emailSent = false;
             try {
                 await sendAlertEmail({
                     url,
                     status: newStatus
                 });
                 logger.info({ id, url, status: newStatus }, "Alert email sent successfully");
+                emailSent = true;
             } catch (emailError) {
                 logger.error(
                     { id, url, error: emailError.message },
@@ -98,7 +103,10 @@ const worker = new Worker(
             `${MONITOR_SERVICE_URL}/monitors/${id}`,
             {
                 status: newStatus,
-                lastCheckedAt: new Date()
+                lastCheckedAt: new Date(),
+                ...(emailSent !== undefined && { emailSent }),
+                latency: result.latency ?? null,
+                httpStatus: result.httpStatus ?? null
             }
         );
 

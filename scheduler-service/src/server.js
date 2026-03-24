@@ -41,6 +41,7 @@ app.listen(4001, () => {
 
 startScheduler();
 
+//graceful shutdown handler
 process.on("SIGTERM", () => {
     logger.info("Scheduler shutting down...");
     process.exit(0);

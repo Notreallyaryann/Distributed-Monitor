@@ -3,16 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Monitor {
   id            Int       @id @default(autoincrement())
-  url           String
+  url           String    @unique
   status        String    @default("UNKNOWN")
   sslStatus     String    @default("UNKNOWN")
   sslExpiresAt  DateTime?
   lastCheckedAt DateTime?
+  emailSent     Boolean   @default(false)
+  latency       Int?
+  httpStatus    Int?
   createdAt     DateTime  @default(now())
 }

@@ -14,6 +14,7 @@ const queue = new Queue("monitorQueue", {
 export function startScheduler() {
     logger.info("Scheduler started");
 
+    //cron expression means run every 1 min 
     cron.schedule("*/1 * * * *", async () => {
         const locked = await acquireLock();
         if (!locked) {
@@ -32,11 +33,11 @@ export function startScheduler() {
                     "check",
                     monitor,
                     {
-                        removeOnComplete: true,
+                        removeOnComplete: true, //if job finided then remove it 
 
                         attempts: 3,
                         backoff: {
-                            type: "exponential",
+                            type: "exponential", //wait btwn retries
                             delay: 5000
                         }
                     }
