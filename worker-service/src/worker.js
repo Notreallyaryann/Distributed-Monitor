@@ -51,6 +51,7 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.ALERT_EMA
 
 const MONITOR_SERVICE_URL = process.env.MONITOR_SERVICE_URL ?? "http://localhost:4000";
 
+
 const worker = new Worker(
     "monitorQueue",
     async job => {
@@ -116,6 +117,6 @@ const worker = new Worker(
     },
     {
         connection: redis,
-        concurrency: 5
+        concurrency: 50
     }
 );

@@ -3,6 +3,12 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: always
 
   postgres:
     image: postgres:15
@@ -12,6 +18,7 @@ services:
       POSTGRES_DB: monitor_db
     ports:
       - "5432:5432"
+    command: ["postgres", "-c", "max_connections=300"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U monitor -d monitor_db"]
       interval: 10s
@@ -22,20 +29,94 @@ services:
     image: edoburu/pgbouncer:latest
     ports:
       - "6432:5432"
-    environment:
-      DB_HOST: postgres           
-      DB_PORT: 5432              
-      DB_USER: monitor           
-      DB_PASSWORD: monitor        
-      DB_NAME: monitor_db        
-      POOL_MODE: transaction      
-      MAX_CLIENT_CONN: 200        
-      DEFAULT_POOL_SIZE: 20      
-      MIN_POOL_SIZE: 5            
-      RESERVE_POOL_SIZE: 5        
-      RESERVE_POOL_TIMEOUT: 3    
-      AUTH_TYPE: scram-sha-256  
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    entrypoint: ["/usr/bin/pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
     depends_on:
       postgres:
         condition: service_healthy
-    restart: always 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U monitor 2>/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  monitor-service:
+    build:
+      context: ./monitor-service
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://monitor:monitor@pgbouncer:5432/monitor_db
+      DIRECT_URL: postgresql://monitor:monitor@postgres:5432/monitor_db
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      ALERT_EMAIL: ${ALERT_EMAIL}
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    restart: on-failure
+
+  scheduler-service:
+    build:
+      context: ./scheduler-service
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONITOR_SERVICE_URL: http://monitor-service:4000
+    depends_on:
+      redis:
+        condition: service_healthy
+      monitor-service:
+        condition: service_started
+    restart: on-failure
+
+  worker-1:
+    build:
+      context: ./worker-service
+      dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONITOR_SERVICE_URL: http://monitor-service:4000
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      ALERT_EMAIL: ${ALERT_EMAIL}
+    depends_on:
+      redis:
+        condition: service_healthy
+      monitor-service:
+        condition: service_started
+    restart: on-failure
+
+  autoscaler:
+    build:
+      context: ./autoscaler-service
+      dockerfile: Dockerfile
+    ports:
+      - "4003:4003"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MIN_WORKERS: "1"
+      MAX_WORKERS: "10"
+      SCALE_UP_THRESHOLD: "100"
+      SCALE_DOWN_THRESHOLD: "20"
+      CHECK_INTERVAL: "30000"
+      DOCKER_COMPOSE_PROJECT: "distributed-monitor"
+      LOG_LEVEL: "info"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+      monitor-service:
+        condition: service_started
+    restart: on-failure

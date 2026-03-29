@@ -1,6 +1,6 @@
 A production-grade, microservices-based uptime monitoring system — built to scale.
 
-![Architecture](./Architecture.jpeg)
+![Architecture](./Architecture2.png)
 
 ---
 
