@@ -9,7 +9,6 @@ async function migrate() {
   try {
     await client.query("BEGIN");
 
-    // Create Monitor table if not exists (combines both migrations)
     await client.query(`
       CREATE TABLE IF NOT EXISTS "Monitor" (
         "id" SERIAL NOT NULL,

@@ -117,6 +117,6 @@ const worker = new Worker(
     },
     {
         connection: redis,
-        concurrency: 50
+        concurrency: 100
     }
 );

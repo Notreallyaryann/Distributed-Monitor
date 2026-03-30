@@ -33,11 +33,12 @@ export function startScheduler() {
                     "check",
                     monitor,
                     {
-                        removeOnComplete: true, //if job finided then remove it 
-
+                        jobId: `check-${monitor.id}`, // Deduplicate - don't add if already in queue
+                        removeOnComplete: true,
+                        removeOnFail: { count: 100 }, // Prune old failures to save Redis memory
                         attempts: 3,
                         backoff: {
-                            type: "exponential", //wait btwn retries
+                            type: "exponential",
                             delay: 5000
                         }
                     }
