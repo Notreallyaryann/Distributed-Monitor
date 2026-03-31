@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { signOut } from "next-auth/react";
 import {
   Activity,
   Radio,
@@ -13,6 +14,7 @@ import {
   Database,
   Cpu,
   Mail,
+  LogOut,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -150,6 +152,15 @@ export default function Home() {
                 )}
               />
               Refresh
+            </button>
+
+            {/* Sign Out */}
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="w-8 h-8 rounded-lg bg-white/[0.05] border border-[var(--color-border)] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-all duration-200"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
 
             {/* GitHub */}

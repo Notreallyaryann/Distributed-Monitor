@@ -6,7 +6,12 @@ const router = express.Router();
 // GET ALL MONITORS
 router.get("/", async (req, res) => {
     try {
+        const userEmail = req.headers["x-user-email"];
+        
+        const filter = userEmail ? { where: { userEmail } } : {};
+
         const monitors = await prisma.monitor.findMany({
+            ...filter,
             orderBy: { createdAt: "desc" }
         });
         res.json(monitors);
@@ -20,12 +25,13 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
+        const userEmail = req.headers["x-user-email"];
 
         const monitor = await prisma.monitor.findUnique({
             where: { id: Number(id) }
         });
 
-        if (!monitor) {
+        if (!monitor || (userEmail && monitor.userEmail !== userEmail)) {
             return res.status(404).json({ message: "Monitor not found" });
         }
 
@@ -40,9 +46,10 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
     try {
         const { url } = req.body;
+        const userEmail = req.headers["x-user-email"];
 
-        if (!url) {
-            return res.status(400).json({ message: "url is required" });
+        if (!url || !userEmail) {
+            return res.status(400).json({ message: "url and userEmail are required" });
         }
 
         // Basic URL validation
@@ -52,14 +59,16 @@ router.post("/", async (req, res) => {
             return res.status(400).json({ message: "Invalid URL format" });
         }
 
-        // Prevent duplicates
-        const existing = await prisma.monitor.findFirst({ where: { url } });
+        // Prevent duplicates for the same user
+        const existing = await prisma.monitor.findFirst({
+            where: { url, userEmail }
+        });
         if (existing) {
-            return res.status(409).json({ message: "Monitor for this URL already exists", monitor: existing });
+            return res.status(409).json({ message: "Monitor for this URL already exists for your account", monitor: existing });
         }
 
         const monitor = await prisma.monitor.create({
-            data: { url }
+            data: { url, userEmail }
         });
 
         res.status(201).json(monitor);
@@ -73,12 +82,13 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
     try {
         const { id } = req.params;
+        const userEmail = req.headers["x-user-email"];
 
         const monitor = await prisma.monitor.findUnique({
             where: { id: Number(id) }
         });
 
-        if (!monitor) {
+        if (!monitor || (userEmail && monitor.userEmail !== userEmail)) {
             return res.status(404).json({ message: "Monitor not found" });
         }
 

@@ -9,7 +9,8 @@ datasource db {
 
 model Monitor {
   id            Int       @id @default(autoincrement())
-  url           String    @unique
+  url           String
+  userEmail     String
   status        String    @default("UNKNOWN")
   sslStatus     String    @default("UNKNOWN")
   sslExpiresAt  DateTime?
@@ -18,4 +19,6 @@ model Monitor {
   latency       Int?
   httpStatus    Int?
   createdAt     DateTime  @default(now())
+
+  @@unique([url, userEmail])
 }

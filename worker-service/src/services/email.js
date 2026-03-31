@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-export const sendAlertEmail = async ({ url, status }) => {
+export const sendAlertEmail = async ({ url, status, recipient }) => {
     const subject =
         status === "DOWN"
             ? `🚨 ALERT: ${url} is DOWN`
@@ -24,7 +24,7 @@ export const sendAlertEmail = async ({ url, status }) => {
 
     const info = await transporter.sendMail({
         from: `"Uptime Monitor" <${process.env.EMAIL_USER}>`,
-        to: process.env.ALERT_EMAIL,
+        to: recipient ?? process.env.ALERT_EMAIL,
         subject,
         html
     });

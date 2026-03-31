@@ -1,3 +1,4 @@
+import "dotenv/config";
 import pg from "pg";
 
 const pool = new pg.Pool({
@@ -13,6 +14,7 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS "Monitor" (
         "id" SERIAL NOT NULL,
         "url" TEXT NOT NULL,
+        "userEmail" TEXT NOT NULL,
         "status" TEXT NOT NULL DEFAULT 'UNKNOWN',
         "sslStatus" TEXT NOT NULL DEFAULT 'UNKNOWN',
         "sslExpiresAt" TIMESTAMP(3),
@@ -25,9 +27,17 @@ async function migrate() {
       );
     `);
 
-    // Create unique index if not exists
+    // Ensure userEmail column exists (if table already exists)
+    try {
+        await client.query(`ALTER TABLE "Monitor" ADD COLUMN IF NOT EXISTS "userEmail" TEXT NOT NULL DEFAULT 'unknown'`);
+    } catch (e) {
+        // column may already exist
+    }
+
+    // Drop old unique index and create new composite one
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS "Monitor_url_key" ON "Monitor"("url");
+      DROP INDEX IF EXISTS "Monitor_url_key";
+      CREATE UNIQUE INDEX IF NOT EXISTS "Monitor_url_userEmail_key" ON "Monitor"("url", "userEmail");
     `);
 
     await client.query("COMMIT");

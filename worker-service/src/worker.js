@@ -88,9 +88,10 @@ const worker = new Worker(
             try {
                 await sendAlertEmail({
                     url,
-                    status: newStatus
+                    status: newStatus,
+                    recipient: monitor.userEmail
                 });
-                logger.info({ id, url, status: newStatus }, "Alert email sent successfully");
+                logger.info({ id, url, status: newStatus, recipient: monitor.userEmail }, "Alert email sent successfully");
                 emailSent = true;
             } catch (emailError) {
                 logger.error(
