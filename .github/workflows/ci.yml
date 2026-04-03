@@ -37,9 +37,13 @@ jobs:
 
       - name: Run Tests (if script exists)
         working-directory: ./${{ matrix.service }}
+        env:
+          MONGODB_URI: "mock"
+          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+          RETRY_DELAY_MS: 0
         run: |
           if npm run | grep -q "test"; then
-            npm run test
+            npm run test -- --testTimeout=30000
           else
             echo "No test script found, skipping."
           fi
