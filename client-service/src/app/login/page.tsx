@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react"
+import Image from "next/image"
 import { Github, Globe } from "lucide-react"
 
 export default function LoginPage() {
@@ -27,9 +28,11 @@ export default function LoginPage() {
                             onClick={() => signIn("google", { callbackUrl: "/" })}
                             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white text-gray-900 font-semibold rounded-lg hover:bg-slate-100 transition-all duration-200 shadow-sm active:scale-[0.98]"
                         >
-                            <img 
+                            <Image 
                                 src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" 
                                 alt="Google" 
+                                width={20}
+                                height={20}
                                 className="w-5 h-5"
                             />
                             <span>Continue with Google</span>

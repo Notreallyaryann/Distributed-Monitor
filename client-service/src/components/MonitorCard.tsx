@@ -19,12 +19,6 @@ import type { Monitor, MonitorStatus } from "@/lib/types";
 
 // helpers 
 
-function statusColor(status: MonitorStatus) {
-  if (status === "UP") return "text-emerald-400";
-  if (status === "DOWN") return "text-red-400";
-  return "text-slate-500";
-}
-
 function statusBadge(status: MonitorStatus) {
   if (status === "UP")
     return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
