@@ -11,45 +11,40 @@ const queue = new Queue("monitorQueue", {
     connection: redis
 });
 
+export async function addMonitorsToQueue(monitors, queue) {
+    for (const monitor of monitors) {
+        await queue.add(
+            "check",
+            monitor,
+            {
+                jobId: `check-${monitor.id}`,
+                removeOnComplete: true,
+                removeOnFail: { count: 100 },
+                attempts: 3,
+                backoff: {
+                    type: "exponential",
+                    delay: 5000
+                }
+            }
+        );
+    }
+}
+
 export function startScheduler() {
     logger.info("Scheduler started");
 
-    //cron expression means run every 1 min 
     cron.schedule("*/1 * * * *", async () => {
         const locked = await acquireLock();
-        if (!locked) {
-            return;
-        }
+        if (!locked) return;
 
         try {
             logger.info("Fetching monitors from Monitor Service");
-
-            const { data } = await axios.get(
-                `${MONITOR_SERVICE_URL}/monitors`
-            );
-
-            for (const monitor of data) {
-                await queue.add(
-                    "check",
-                    monitor,
-                    {
-                        jobId: `check-${monitor.id}`, // Deduplicate - don't add if already in queue
-                        removeOnComplete: true,
-                        removeOnFail: { count: 100 }, // Prune old failures to save Redis memory
-                        attempts: 3,
-                        backoff: {
-                            type: "exponential",
-                            delay: 5000
-                        }
-                    }
-                );
-            }
-
+            const { data } = await axios.get(`${MONITOR_SERVICE_URL}/monitors`);
+            await addMonitorsToQueue(data, queue);
             logger.info({ count: data.length }, "Jobs pushed to queue");
         } catch (err) {
             logger.error({ error: err.message }, "Failed to fetch monitors or push jobs");
         } finally {
-            // Release the lock early so other instances can pick up next tick
             await releaseLock();
         }
     });

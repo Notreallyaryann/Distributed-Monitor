@@ -29,9 +29,10 @@ describe('Worker Service Checker', () => {
     });
 
     it('should retry multiple times and return DOWN when axios consistently fails', async () => {
+        // Override the retry delay for testing speed
+        process.env.RETRY_DELAY_MS = "0";
         axios.get.mockRejectedValue(new Error('Network Error'));
 
-        // This will take a few seconds because of your retry delay
         const result = await checkUrl('https://unreachable-site.com');
         expect(result.status).toBe('DOWN');
     });

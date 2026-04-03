@@ -1,35 +1,26 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Queue } from 'bullmq';
+import { addMonitorsToQueue } from './scheduler.js';
 
 // Mock BullMQ's Queue
-vi.mock('bullmq', () => ({
-    Queue: vi.fn().mockImplementation(() => ({
-        add: vi.fn().mockResolvedValue({ id: 'job-123' })
-    }))
-}));
+const mockQueue = {
+    add: vi.fn().mockResolvedValue({ id: 'job-123' })
+};
 
-describe('Scheduler Service Queueing', () => {
-    it('should correctly add a job to the monitorQueue', async () => {
-        // Instantiate our mocked queue
-        const queue = new Queue('monitorQueue');
-        const jobData = { id: 1, url: 'https://example.com' };
+describe('Scheduler Service Logic', () => {
+    it('should correctly add multiple monitors to the queue', async () => {
+        const monitors = [
+            { id: 1, url: 'https://example.com' },
+            { id: 2, url: 'https://test.com' }
+        ];
 
-        // Attempt to add a job
-        const job = await queue.add('check', jobData);
+        await addMonitorsToQueue(monitors, mockQueue);
 
-        // Verify the mock was called
-        expect(queue.add).toHaveBeenCalled();
-        expect(job.id).toBeDefined();
-        expect(job.id).toBe('job-123');
-    });
-
-    it('should correctly store job data when adding to queue', async () => {
-        const queue = new Queue('monitorQueue');
-        const jobData = { id: 10, url: 'https://test.com' };
-
-        await queue.add('check', jobData);
-
-        // Inspect the call arguments to ensure metadata was passed correctly
-        expect(queue.add).toHaveBeenCalledWith('check', jobData);
+        // Verify the mock was called once per monitor
+        expect(mockQueue.add).toHaveBeenCalledTimes(2);
+        expect(mockQueue.add).toHaveBeenCalledWith(
+            "check",
+            monitors[0],
+            expect.any(Object)
+        );
     });
 });
