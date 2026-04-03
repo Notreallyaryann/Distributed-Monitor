@@ -20,5 +20,10 @@ model Monitor {
   httpStatus    Int?
   createdAt     DateTime  @default(now())
 
+  // Alerting Channels
+  webhookUrl    String?
+  telegramToken String?
+  telegramChatId String?
+
   @@unique([url, userEmail])
 }

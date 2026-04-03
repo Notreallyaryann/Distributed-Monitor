@@ -1,0 +1,81 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  code-check:
+    name: Code Check - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [
+          'autoscaler-service',
+          'client-service',
+          'monitor-service',
+          'scheduler-service',
+          'worker-service'
+        ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './${{ matrix.service }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./${{ matrix.service }}
+        run: npm ci
+
+      - name: Lint (if script exists)
+        working-directory: ./${{ matrix.service }}
+        run: |
+          if npm run | grep -q "lint"; then
+            npm run lint
+          else
+            echo "No lint script found, skipping."
+          fi
+
+      - name: Build (if script exists)
+        working-directory: ./${{ matrix.service }}
+        env:
+          MONGODB_URI: "mongodb://localhost:27017/test"
+          AUTH_GITHUB_ID: "mock"
+          AUTH_GITHUB_SECRET: "mock"
+          AUTH_GOOGLE_ID: "mock"
+          AUTH_GOOGLE_SECRET: "mock"
+          NEXT_PUBLIC_MONITOR_API: "http://localhost:4000"
+          MONITOR_SERVICE_URL: "http://localhost:4000"
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "mock"
+          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+          DIRECT_URL: "postgresql://mock:mock@localhost:5432/mock"
+        run: |
+          if npm run | grep -q "build"; then
+            npm run build
+          else
+            echo "No build script found, skipping."
+          fi
+
+# Verify Docker configurations
+  docker-build:
+    name: Docker Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Build images
+        run: docker compose build

@@ -40,6 +40,15 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS "Monitor_url_userEmail_key" ON "Monitor"("url", "userEmail");
     `);
 
+    // Ensure new columns exist
+    try {
+        await client.query(`ALTER TABLE "Monitor" ADD COLUMN IF NOT EXISTS "webhookUrl" TEXT`);
+        await client.query(`ALTER TABLE "Monitor" ADD COLUMN IF NOT EXISTS "telegramToken" TEXT`);
+        await client.query(`ALTER TABLE "Monitor" ADD COLUMN IF NOT EXISTS "telegramChatId" TEXT`);
+    } catch (e) {
+        // columns may already exist
+    }
+
     await client.query("COMMIT");
     console.log("Migrations applied successfully.");
   } catch (err) {

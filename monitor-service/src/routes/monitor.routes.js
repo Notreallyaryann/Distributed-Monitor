@@ -45,7 +45,7 @@ router.get("/:id", async (req, res) => {
 // CREATE MONITOR
 router.post("/", async (req, res) => {
     try {
-        const { url } = req.body;
+        const { url, telegramToken, telegramChatId, webhookUrl } = req.body;
         const userEmail = req.headers["x-user-email"];
 
         if (!url || !userEmail) {
@@ -68,7 +68,13 @@ router.post("/", async (req, res) => {
         }
 
         const monitor = await prisma.monitor.create({
-            data: { url, userEmail }
+            data: { 
+                url, 
+                userEmail,
+                telegramToken,
+                telegramChatId,
+                webhookUrl
+            }
         });
 
         res.status(201).json(monitor);

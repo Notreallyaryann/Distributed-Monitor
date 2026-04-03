@@ -6,6 +6,8 @@ import { redis } from "./config/redis.js";
 import { checkUrl } from "./services/checker.js";
 import { logger } from "./utils/logger.js";
 import { sendAlertEmail } from "./services/email.js";
+import { sendTelegramAlert } from "./services/telegram.js";
+import { sendWebhookAlert } from "./services/webhook.js";
 import { isAllowed } from "./utils/rateLimiter.js";
 
 //Health Server
@@ -86,6 +88,7 @@ const worker = new Worker(
 
             emailSent = false;
             try {
+                // Email Notification
                 await sendAlertEmail({
                     url,
                     status: newStatus,
@@ -93,10 +96,29 @@ const worker = new Worker(
                 });
                 logger.info({ id, url, status: newStatus, recipient: monitor.userEmail }, "Alert email sent successfully");
                 emailSent = true;
+
+                // Telegram Notification
+                if (monitor.telegramToken && monitor.telegramChatId) {
+                    await sendTelegramAlert({
+                        url,
+                        status: newStatus,
+                        token: monitor.telegramToken,
+                        chatId: monitor.telegramChatId
+                    });
+                }
+
+                // Generic Webhook Notification
+                if (monitor.webhookUrl) {
+                    await sendWebhookAlert({
+                        url,
+                        status: newStatus,
+                        webhookUrl: monitor.webhookUrl
+                    });
+                }
             } catch (emailError) {
                 logger.error(
                     { id, url, error: emailError.message },
-                    "Failed to send alert email"
+                    "One or more alerts failed to send"
                 );
             }
         }
