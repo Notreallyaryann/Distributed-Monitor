@@ -105,6 +105,8 @@ async function removeWorker() {
     }
 }
 
+import { calculateScalingDecision } from "./utils/scaling.js";
+
 async function autoscaleLoop() {
     try {
         const queueDepth = await getQueueDepth();
@@ -115,29 +117,30 @@ async function autoscaleLoop() {
             "Autoscaler check"
         );
 
-        // Scale up if queue is backing up
-        if (queueDepth > SCALE_UP_THRESHOLD && runningWorkers < MAX_WORKERS) {
+        const decision = calculateScalingDecision({
+            queueDepth,
+            runningWorkers,
+            minWorkers: MIN_WORKERS,
+            maxWorkers: MAX_WORKERS,
+            scaleUpThreshold: SCALE_UP_THRESHOLD,
+            scaleDownThreshold: SCALE_DOWN_THRESHOLD
+        });
+
+        if (decision.action === 'SCALE_UP') {
             logger.warn(
                 { queueDepth, threshold: SCALE_UP_THRESHOLD, currentWorkers: runningWorkers },
                 "Queue backing up — scaling up"
             );
-            const newWorkerId = runningWorkers + 1;
-            await createWorker(newWorkerId);
-            currentWorkerCount = newWorkerId;
-        }
-
-        // Scale down if queue is empty
-        else if (queueDepth < SCALE_DOWN_THRESHOLD && runningWorkers > MIN_WORKERS) {
+            await createWorker(decision.target);
+            currentWorkerCount = decision.target;
+        } else if (decision.action === 'SCALE_DOWN') {
             logger.info(
                 { queueDepth, threshold: SCALE_DOWN_THRESHOLD, currentWorkers: runningWorkers },
                 "Queue empty — scaling down"
             );
             await removeWorker();
-            currentWorkerCount = runningWorkers - 1;
-        }
-
-        // Steady state
-        else {
+            currentWorkerCount = decision.target;
+        } else {
             logger.debug(
                 { queueDepth, currentWorkers: runningWorkers },
                 "Steady state — no scaling needed"

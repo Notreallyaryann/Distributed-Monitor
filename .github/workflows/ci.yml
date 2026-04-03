@@ -35,6 +35,15 @@ jobs:
         working-directory: ./${{ matrix.service }}
         run: npm ci --legacy-peer-deps
 
+      - name: Run Tests (if script exists)
+        working-directory: ./${{ matrix.service }}
+        run: |
+          if npm run | grep -q "test"; then
+            npm run test
+          else
+            echo "No test script found, skipping."
+          fi
+
       - name: Lint (if script exists)
         working-directory: ./${{ matrix.service }}
         run: |
